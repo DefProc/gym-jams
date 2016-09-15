@@ -1,0 +1,13 @@
+Raspberry Pi streaming
+----------------------
+
+Should be possible using VLC (cvlc) and raspivid: 
+
+ * http://www.raspberry-projects.com/pi/pi-hardware/raspberry-pi-camera/streaming-video-using-vlc-player
+ * https://www.raspberrypi.org/forums/viewtopic.php?f=43&t=43969
+ * http://pingbin.com/2012/12/raspberry-pi-web-cam-server-motion/
+ * https://wiki.videolan.org/Documentation:Streaming_HowTo/Command_Line_Examples/
+ * https://sandilands.info/sgordon/live-webca-streaming-using-vlc-command-line
+
+VLC could be used to record the stream remotely, or any streaming viewer could 
+connect from the same network. 
