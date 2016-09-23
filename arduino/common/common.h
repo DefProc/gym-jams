@@ -8,6 +8,7 @@
 // RFM69 assignments
 #define NETWORKID   100
 #define GATEWAYID   1
+#define BROADCAST   255
 #define FREQUENCY   RF69_868MHZ
 #define KEY         "changemechangeme"
 #define ACK_TIME    30  // # of ms to wait for an ack
