@@ -28,11 +28,15 @@ RFM69 radio;
 #define B_BLUE_NODE_MIN 40
 #define B_BLUE_NODE_MAX 50
 
+// floating robots
+#define ROBOT_NODE 11
+#define R_LED_PIN 6
+
 // Display pinouts
 #define D_LED_PIN 6
 
 // message enum
-typedef enum e_Message {
+enum e_Message {
   OK,
   PRESS,
   SHOW,
@@ -42,7 +46,7 @@ typedef enum e_Message {
 };
 
 // side enum
-typedef enum e_Side {
+enum e_Side {
   NONE,
   RED,
   BLUE,
