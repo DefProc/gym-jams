@@ -67,6 +67,8 @@ void setup() {
   radio.encrypt(KEY);
   // send the radio to sleep straight away (outgoing only)
   radio.sleep();
+
+  attachInterrupt(B_INT, buttonCheck(), FALLING);
 }
 
 void loop() {
