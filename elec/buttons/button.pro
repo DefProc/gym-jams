@@ -1,4 +1,4 @@
-update=Thu 15 Sep 2016 18:35:05 BST
+update=Wed 21 Sep 2016 16:41:00 BST
 version=1
 last_client=kicad
 [pcbnew]
@@ -59,3 +59,13 @@ LibName29=valves
 LibName30=moteino
 [general]
 version=1
+[schematic_editor]
+version=1
+PageLayoutDescrFile=
+PlotDirectoryName=
+SubpartIdSeparator=0
+SubpartFirstId=65
+NetFmtName=
+SpiceForceRefPrefix=0
+SpiceUseNetNumbers=0
+LabSize=60
