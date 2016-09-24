@@ -10,10 +10,10 @@ SdFat sd;
 SdFile myFile;
 // The unique identifier of this node
 // targets are numbered 1-16,
-uint8_t node_id;
-RFM69 radio;
+uint8_t nodeID;
+//RFM69 radio;
 
-t_MessageFormat myPacket;
+//t_MessageFormat yourPacket;
 
 // How many numbered images on the SD card?
 uint8_t num_images;
@@ -27,7 +27,7 @@ uint8_t num_images;
 #define ARRAY_HEIGHT 9
 #define DATA_PIN 6
 // set the inital (default) frame hold time
-#define FRAME_DELAY 250
+#define FRAME_DELAY 330
 // Define the array of leds
 CRGB leds[NUM_LEDS];
 // Error messages stored in flashread16(myFile).
@@ -45,8 +45,9 @@ enum image_state_t {
 
 // System Setup
 volatile boolean
-  changeImage = false; // should we change the image to the next one?
+  changeImage = true; // should we change the image to the next one?
 boolean
+  displayImage = false,
   game_over = false,
   is_ready_to_play = false,
   show_help = false,
@@ -77,7 +78,7 @@ uint32_t
 volatile uint32_t
   lastButton = 0UL, // when did we last press the button
   lastImpact = 0UL; // when did we last see a hit
-game_states_t play_state = IDLE;
+//game_states_t play_state = IDLE;
 image_state_t image_state = STATIC;
 t_MessageFormat theData; // incoming message buffer
 
@@ -88,7 +89,7 @@ void setup() {
   randomSeed(Entropy.random());
 
   Serial.begin(BAUD);
-  Serial.println("starting target_node v1.1.0");
+  Serial.println("starting gym-jams display");
 
   // set up the ADC sampling speed
   ADCSRA &= ~PS_128;  // remove bits set by Arduino library
@@ -111,14 +112,14 @@ void setup() {
   }
 
   // get the node id from EEPROM
-  EEPROM.get(NODE_LOC, node_id);
+  EEPROM.get(NODE_LOC, nodeID);
   // check it's sensible, or reset to default
-  if (node_id < NODE_MIN || node_id > NODE_MAX) {
-    node_id = NODE_MIN;
-    EEPROM.put(NODE_LOC, node_id);
+  if (nodeID < NODE_MIN || nodeID > NODE_MAX) {
+    nodeID = NODE_MIN+100;
+    EEPROM.put(NODE_LOC, nodeID);
   }
   Serial.print(F("I am target: "));
-  Serial.println(node_id);
+  Serial.println(nodeID);
 
   // get the number of images from EEPROM
   EEPROM.get(IMAGE_LOC, num_images);
@@ -131,7 +132,7 @@ void setup() {
   Serial.println(num_images);
 
   // initialize the radio
-  radio.initialize(FREQUENCY,node_id,NETWORKID);
+  radio.initialize(FREQUENCY,nodeID,NETWORKID);
   #ifdef IS_RFM69HW
   radio.setHighPower(); //uncomment only for RFM69HW!
   #endif
@@ -144,11 +145,15 @@ void setup() {
   clearStripBuffer();
   FastLED.show();
   delay(100);
-  showImage("invader.bmp");
+  showImage("BR0001.bmp");
   delay(2000);
   clearStripBuffer();
   FastLED.show();
 
+  // let set some defaults
+  yourPacket.the_message = ANIMATE;
+  yourPacket.the_side = BLUE;
+  yourPacket.the_value =0;
 }
 
 void showError(uint8_t error_code) {
@@ -161,16 +166,16 @@ void fadeall() { for(int i = 0; i < NUM_LEDS; i++) { leds[i].nscale8(250); } }
 
 void loop() {
   if (changeImage == true) {
-    if (yourPacket.the_message == SHOW) {
+    if (yourPacket.the_message == SHOW && millis() - lastImageUpdate >= FRAME_DELAY) {
       // show a specified image
       char filename_buffer[13];
       bool displayImage = true;
       if (yourPacket.the_side == RED) {
-        sprintf(filename_buffer, "RD%04d.bmp", yourPacket.the_value);
+        sprintf(filename_buffer, "RC%04d.bmp", frameNumber);// yourPacket.the_value);
       } else if (yourPacket.the_side == BLUE) {
-        sprintf(filename_buffer, "BL%04d.bmp", yourPacket.the_value);
+        sprintf(filename_buffer, "BC%04d.bmp", frameNumber); //yourPacket.the_value);
       } else if (yourPacket.the_side == SCORE) {
-        sprintf(filename_buffer, "SC%04d.bmp", yourPacket.the_value);
+        sprintf(filename_buffer, "RS%04d.bmp", yourPacket.the_value);
       } else if (yourPacket.the_side == NONE) {
         clearStripBuffer();
         FastLED.show();
@@ -179,16 +184,26 @@ void loop() {
       if (displayImage == true) {
         if (sd.exists(filename_buffer)) {
           showImage(filename_buffer, 0, 0, 1);
+          frameNumber++;
+          lastImageUpdate - millis();
         } else {
-          showImage("invader.bmp", 0, 0, 1);
+          //showImage("invader.bmp", 0, 0, 1);
+          //frameNumber = 1;
+          //we've reached the end, stop
+          changeImage == false;
         }
       }
-      changeImage = false;
+      // animate this
+      //changeImage = false;
     } else if (yourPacket.the_message == ANIMATE) {
       // animate at the right rate
       if (millis() - lastImageUpdate >= FRAME_DELAY) {
         char filename_buffer[13];
-        sprintf(filename_buffer, "AA%04d.bmp", frameNumber);
+        if (yourPacket.the_side == BLUE) {
+          sprintf(filename_buffer, "BR%04d.bmp", frameNumber);
+        } else {
+          sprintf(filename_buffer, "RR%04d.bmp", frameNumber);
+        }
         if (sd.exists(filename_buffer)) {
           showImage(filename_buffer, 0, 0, 1);
           frameNumber++;
@@ -628,7 +643,7 @@ void checkIncoming() {
   // *** We need to call this fast enough so as humans don't notice ***
   if (radio.receiveDone()) {
     // send ACK if requested (and it's directed at us only)
-    if (radio.ACKRequested() && radio.TARGETID == node_id) {
+    if (radio.ACKRequested() && radio.TARGETID == nodeID) {
       //uint8_t theNodeID = radio.SENDERID;
       radio.sendACK();
     }
