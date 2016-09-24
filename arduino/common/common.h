@@ -35,6 +35,12 @@ RFM69 radio;
 
 // Display pinouts
 #define D_LED_PIN 6
+#define NODE_MIN 1
+#define NODE_MAX 16
+#define NODE_LOC 1
+#define IMAGE_LOC 5
+#define IMAGE_DEFAULT 5
+#define IMAGE_MAX 200
 
 // message enum
 enum e_Message {
@@ -62,18 +68,4 @@ typedef struct {
 }t_MessageFormat;
 
 t_MessageFormat myPacket;
-
-bool radioCheck() {
-  //check for any received packets and have valid data
-  if (radio.receiveDone() && radio.DATALEN == sizeof(myPacket))
-  {
-    if (radio.ACKRequested())
-    {
-      radio.sendACK();
-      delay(10);
-    }
-    return true;
-  } else {
-    return false;
-  }
-}
+t_MessageFormat yourPacket;
