@@ -46,12 +46,12 @@ void setup() {
     team = RED;
   }
 
-  byte a_button;
+  uint8_t a_button;
   EEPROM.get(NODEID_LOCATION, a_button);
-  if (a_button < (B_BLUE_NODE_MAX - B_RED_NODE_MIN)) {
+  if (a_button < (B_BLUE_NODE_MAX - B_BLUE_NODE_MIN)) {
     buttonID = a_button;
   } else {
-    buttonID = 1;
+    buttonID = 9;
   }
 
   if (team == RED) {
@@ -98,7 +98,7 @@ void loop() {
         team = RED;
         nodeID = buttonID + B_RED_NODE_MIN;
         EEPROM.put(TEAMID_LOCATION, uint8_t(team));
-        EEPROM.put(NODEID_LOCATION, nodeID);
+        EEPROM.put(NODEID_LOCATION, buttonID);
         radio.initialize(FREQUENCY, nodeID, NETWORKID);
         Serial.print("buttonID: ");
         Serial.print(buttonID);
@@ -116,13 +116,13 @@ void loop() {
         team = BLUE;
         nodeID = buttonID + B_BLUE_NODE_MIN;
         EEPROM.put(TEAMID_LOCATION, uint8_t(team));
-        EEPROM.put(NODEID_LOCATION, nodeID);
+        EEPROM.put(NODEID_LOCATION, buttonID);
         radio.initialize(FREQUENCY, nodeID, NETWORKID);
         Serial.print("buttonID: ");
         Serial.print(buttonID);
         Serial.print("nodeID: ");
         Serial.print(nodeID);
-        Serial.print("team: RED");
+        Serial.print("team: BLUE");
         Serial.println();
       }
     } else if (sue == 'p' || sue == 'P') {
