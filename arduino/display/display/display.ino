@@ -60,6 +60,7 @@ int
   offsetX = 0, // for translating images x pixels
   offsetY = 0; // for translating images y pixels
 uint8_t
+  brightness =255,
   analogThreshold = 70, // above what value should we take a reading as activated
   currentFrame = 0, // whick frame are we displaying
   numFrames = 1, // how many frames in the image animation?
@@ -115,9 +116,10 @@ void setup() {
   EEPROM.get(NODE_LOC, nodeID);
   // check it's sensible, or reset to default
   if (nodeID < NODE_MIN || nodeID > NODE_MAX) {
-    nodeID = NODE_MIN+100;
+    nodeID = NODE_MIN;
     EEPROM.put(NODE_LOC, nodeID);
   }
+  nodeID = nodeID+100;
   Serial.print(F("I am target: "));
   Serial.println(nodeID);
 
@@ -145,8 +147,8 @@ void setup() {
   clearStripBuffer();
   FastLED.show();
   delay(100);
-  showImage("BR0001.bmp");
-  delay(2000);
+  //showImage("BR0001.bmp");
+  //delay(2000);
   clearStripBuffer();
   FastLED.show();
 
@@ -165,27 +167,42 @@ void showError(uint8_t error_code) {
 void fadeall() { for(int i = 0; i < NUM_LEDS; i++) { leds[i].nscale8(250); } }
 
 void loop() {
+  if (changeImage == false) {
+    if (brightness > 0 && millis() - lastImageUpdate >= FRAME_DELAY) {
+      brightness = brightness - 10;
+      if (brightness <= 15) {brightness = 0;}
+      FastLED.setBrightness(brightness);
+      FastLED.show();
+      lastImageUpdate = millis();
+    }
+  }
   if (changeImage == true) {
     if (yourPacket.the_message == SHOW && millis() - lastImageUpdate >= FRAME_DELAY) {
       // show a specified image
       char filename_buffer[13];
       bool displayImage = true;
+      brightness = 255;
       if (yourPacket.the_side == RED) {
-        sprintf(filename_buffer, "RC%04d.bmp", frameNumber);// yourPacket.the_value);
+        sprintf(filename_buffer, "RC%04d.bmp", 5); //frameNumber);// yourPacket.the_value);
       } else if (yourPacket.the_side == BLUE) {
-        sprintf(filename_buffer, "BC%04d.bmp", frameNumber); //yourPacket.the_value);
+        changeImage == false;
+        sprintf(filename_buffer, "BC%04d.bmp", 5); //frameNumber); //yourPacket.the_value);
+        changeImage == false;
       } else if (yourPacket.the_side == SCORE) {
         sprintf(filename_buffer, "RS%04d.bmp", yourPacket.the_value);
+        changeImage == false;
       } else if (yourPacket.the_side == NONE) {
         clearStripBuffer();
         FastLED.show();
         displayImage = false;
+        changeImage = false;
       }
       if (displayImage == true) {
         if (sd.exists(filename_buffer)) {
           showImage(filename_buffer, 0, 0, 1);
           frameNumber++;
           lastImageUpdate - millis();
+          changeImage = false;
         } else {
           //showImage("invader.bmp", 0, 0, 1);
           //frameNumber = 1;
@@ -196,29 +213,36 @@ void loop() {
       // animate this
       //changeImage = false;
     } else if (yourPacket.the_message == ANIMATE) {
+      //Serial.println("animate");
       // animate at the right rate
       if (millis() - lastImageUpdate >= FRAME_DELAY) {
         char filename_buffer[13];
         if (yourPacket.the_side == BLUE) {
           sprintf(filename_buffer, "BR%04d.bmp", frameNumber);
+          changeImage == false;
         } else {
           sprintf(filename_buffer, "RR%04d.bmp", frameNumber);
+          changeImage == false;
         }
         if (sd.exists(filename_buffer)) {
           showImage(filename_buffer, 0, 0, 1);
+          brightness = 255;
           frameNumber++;
           lastImageUpdate = millis();
+          changeImage = false;
         } else {
           frameNumber = 1;
         }
       }
     } else if (yourPacket.the_message == STOP) {
       destroy();
-      displayImage = false;
-    } else if (yourPacket.the_message == START) {
-      colour_wipe();
-      clearStripBuffer();
-      FastLED.show();
+      //displayImage = false;
+      changeImage = false;
+    //} else if (yourPacket.the_message == START) {
+      //Serial.println("colourWipe");
+      //colour_wipe();
+      //clearStripBuffer();
+      //FastLED.show();
     }
   }
 
@@ -529,6 +553,7 @@ bool getImageDimensions(char *filename) {
   //}
 
   // Open requested file on SD card
+  myFile.close();
   if (!myFile.open(filename, O_READ)) {
     Serial.println(F("File open failed"));
     showError(7);
@@ -650,6 +675,8 @@ void checkIncoming() {
     // check if we're getting hit data
     if (radio.DATALEN = sizeof(t_MessageFormat)) {
       yourPacket = *(t_MessageFormat*)radio.DATA;
+      frameNumber = 1;
+      changeImage = true;
     }
   }
 }

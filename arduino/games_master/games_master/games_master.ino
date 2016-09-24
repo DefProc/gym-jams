@@ -4,15 +4,10 @@
 
 #define IS_RFM69HW false
 
-enum e_GameStates {
-  STARTED,
-  STOPPED
-};
-e_GameStates gameState;
-bool game_running = false;
+bool game_running = true;
 uint8_t which_game = 1;
 uint8_t max_games = 3;
-t_MessageFormat yourPacket;
+//t_MessageFormat yourPacket;
 
 void setup() {
   Serial.begin(BAUD);
@@ -43,11 +38,16 @@ void loop() {
       Serial.println();
     } else if (sue == 'S' || sue == 's') {
       // start the current game
+      game_running = true;
       sendMessage(BROADCAST, START, NONE, 0);
+      Serial.println("STARTED GAME");
       // call the animating boxes to start
-
+      delay(500);
+      sendMessage(104, SHOW, RED, 0);
     } else if (sue == 'X' || sue == 'x') {
+      game_running = false;
       // stop the current game
+      Serial.println("STOPPED GAME");
       sendMessage(BROADCAST, STOP, NONE, 0);
     } else if (sue == 'O' || sue == 'o') {
       // set OVO speaking mode on
@@ -101,7 +101,46 @@ void checkIncoming() {
       //     * notify the relavent display (if Game1)
       //     * change posession (if Game2)
       // use the_side and radio.SENDERID to get button number
-      //
+      uint8_t received_button = radio.SENDERID;
+      if (received_button > B_RED_NODE_MIN && received_button < B_BLUE_NODE_MAX) {
+        // it's a button in normal range
+        Serial.print("b");
+        if (team(received_button ) == BLUE) {
+          Serial.print(" BLUE ");
+          Serial.print(received_button -B_BLUE_NODE_MIN);
+        } else if (team(received_button ) == RED){
+          Serial.print(" RED ");
+          Serial.print(received_button -B_RED_NODE_MIN);
+        } else {
+          Serial.print(received_button );
+        }
+        Serial.println();
+        if (game_running == true && which_game == 1) {
+          // send the OK message so the button buzzes
+          // for game 1
+          if (team(received_button) == RED) {
+            // buttons 31-34 to boxes 101–104
+            sendMessage(received_button +70, SHOW, team(received_button ), 0);
+          } else if (team(received_button) == BLUE) {
+            // buttons 41-44 do boxes (11)1–(11)4
+            sendMessage(received_button +70, SHOW, team(received_button ), 0);
+          }
+          Serial.print("sent SHOW to ");
+          Serial.print(received_button + 70);
+          Serial.println();
+          sendMessage(received_button , OK, NONE, 0);
+        }
+      }
     }
+  }
+}
+
+e_Side team(uint8_t _nodeID) {
+  if (_nodeID > B_BLUE_NODE_MIN && _nodeID < B_BLUE_NODE_MAX) {
+    return BLUE;
+  } else if (_nodeID > B_RED_NODE_MIN && _nodeID < B_RED_NODE_MAX) {
+    return RED;
+  } else {
+    return NONE;
   }
 }

@@ -50,6 +50,8 @@ void setup() {
   EEPROM.get(NODEID_LOCATION, a_button);
   if (a_button < (B_BLUE_NODE_MAX - B_BLUE_NODE_MIN)) {
     buttonID = a_button;
+    Serial.print("a_button");
+    Serial.println(a_button);
   } else {
     buttonID = 9;
   }
