@@ -30,7 +30,7 @@ RFM69 radio;
 #define B_BLUE_NODE_MAX 50
 
 // floating robots
-#define ROBOT_NODE 11
+#define ROBOT_NODE 21
 #define R_LED_PIN 6
 
 // Display pinouts

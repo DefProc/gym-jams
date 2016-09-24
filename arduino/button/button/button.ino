@@ -15,6 +15,7 @@ uint8_t buttonID = 1;
 e_Side team = RED;
 
 bool radioCalled = true;
+bool makeBuzz = true;
 unsigned long lastButton = 0UL;
 
 void setup() {
@@ -34,8 +35,7 @@ void setup() {
   digitalWrite(B_LED, LOW);
 
   Serial.begin(BAUD);
-  Serial.println(F("start button"));
-  pinMode(B_BUTTON, INPUT);
+  pinMode(B_BUTTON, INPUT_PULLUP);
 
   // check the eeprom for the stored settings
   byte a_team;
@@ -48,7 +48,7 @@ void setup() {
 
   byte a_button;
   EEPROM.get(NODEID_LOCATION, a_button);
-  if (a_button < (B_RED_NODE_MAX - B_RED_NODE_MIN)) {
+  if (a_button < (B_BLUE_NODE_MAX - B_RED_NODE_MIN)) {
     buttonID = a_button;
   } else {
     buttonID = 1;
@@ -68,10 +68,71 @@ void setup() {
   // send the radio to sleep straight away (outgoing only)
   radio.sleep();
 
-  attachInterrupt(B_INT, buttonCheck(), FALLING);
+  // report the current setup
+  Serial.println(F("start button"));
+  Serial.print("buttonID: ");
+  Serial.print(buttonID);
+  Serial.print("nodeID: ");
+  Serial.print(nodeID);
+  if (team == RED) { Serial.print("team: RED"); }
+  else { Serial.print("team: BLUE"); }
+  Serial.println();
+
+  // setup some initial states
+  yourPacket.the_message = OK;
+  yourPacket.the_side = NONE;
+  yourPacket.the_value = 0;
+
+  attachInterrupt(B_INT, buttonCheck, FALLING);
 }
 
 void loop() {
+  if (Serial.available()) {
+    char sue = Serial.read();
+    if (sue == 'r' || sue == 'R') {
+      //is a red node
+      unsigned int button_number = Serial.parseInt();
+      if (button_number < (B_RED_NODE_MAX-B_RED_NODE_MIN)) {
+        // it's in range, set the id
+        buttonID = button_number;
+        team = RED;
+        nodeID = buttonID + B_RED_NODE_MIN;
+        EEPROM.put(TEAMID_LOCATION, uint8_t(team));
+        EEPROM.put(NODEID_LOCATION, nodeID);
+        radio.initialize(FREQUENCY, nodeID, NETWORKID);
+        Serial.print("buttonID: ");
+        Serial.print(buttonID);
+        Serial.print("nodeID: ");
+        Serial.print(nodeID);
+        Serial.print("team: RED");
+        Serial.println();
+      }
+    } else if (sue == 'b' || sue == 'B') {
+      //is a blue node
+      unsigned int button_number = Serial.parseInt();
+      if (button_number < (B_BLUE_NODE_MAX-B_BLUE_NODE_MIN)) {
+        // it's in range, set the id
+        buttonID = button_number;
+        team = BLUE;
+        nodeID = buttonID + B_BLUE_NODE_MIN;
+        EEPROM.put(TEAMID_LOCATION, uint8_t(team));
+        EEPROM.put(NODEID_LOCATION, nodeID);
+        radio.initialize(FREQUENCY, nodeID, NETWORKID);
+        Serial.print("buttonID: ");
+        Serial.print(buttonID);
+        Serial.print("nodeID: ");
+        Serial.print(nodeID);
+        Serial.print("team: RED");
+        Serial.println();
+      }
+    } else if (sue == 'p' || sue == 'P') {
+      // serial pseudo button press
+      Serial.println("pressed");
+      lastButton = millis();
+      radioCalled = false;
+    }
+  }
+
   if (radioCalled == false) {
     //make a radio call
     myPacket.the_message = PRESS;
@@ -96,10 +157,16 @@ void loop() {
       }
     }
     if (replied == true && yourPacket.the_message == OK) {
-      soundThePiezo();
+      makeBuzz = true;
+      //soundThePiezo();
     }
     radio.sleep();
     attachInterrupt(B_INT, buttonCheck, FALLING);
+  }
+
+  if (makeBuzz == true) {
+    soundThePiezo();
+    makeBuzz = false;
   }
 }
 
@@ -119,6 +186,7 @@ void buttonCheck()
   if (millis() - lastButton >= DBOUNCE_TMOUT) {
     lastButton = millis();
     radioCalled = false;
+    Serial.println("button pressed");
   }
 }
 
