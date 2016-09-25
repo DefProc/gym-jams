@@ -35,7 +35,7 @@ void setup() {
   digitalWrite(B_LED, LOW);
 
   Serial.begin(BAUD);
-  pinMode(B_BUTTON, INPUT_PULLUP);
+  pinMode(B_BUTTON, INPUT_PULLUP)
 
   // check the eeprom for the stored settings
   byte a_team;

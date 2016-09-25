@@ -7,7 +7,8 @@
 bool game_running = true;
 uint8_t which_game = 1;
 uint8_t max_games = 3;
-//t_MessageFormat yourPacket;
+uint16_t red_score = 0;
+uint16_t blue_score = 0;
 
 void setup() {
   Serial.begin(BAUD);
@@ -18,9 +19,15 @@ void setup() {
     radio.setHighPower();
   #endif
   radio.encrypt(KEY);
+
+  if (game_running == true) {
+    Serial.println("started game");
+  }
 }
 
 void loop() {
+  checkIncoming();
+
   // check for serial incomming and parse as required
   while (Serial.available()) {
     char sue = Serial.read();
@@ -29,43 +36,30 @@ void loop() {
       Serial.print(F("H    - help (print this message)"));
       Serial.print(F("S    - start game"));
       Serial.print(F("X    - stop game"));
-      Serial.print(F("G<n> - select game"));
-      Serial.print(F("G1   - Button Tag"));
-      Serial.print(F("G2   - Robot Rugby"));
-      Serial.print(F("G3   - Something Else"));
-      Serial.print(F("O    - OVO speaking mode ON"));
-      Serial.print(F("Q    - OVO speaking mode OFF"));
       Serial.println();
     } else if (sue == 'S' || sue == 's') {
       // start the current game
+      Serial.println("STARTED GAME\n");
+      Serial.println("RED\t\t\tBLUE");
+      Serial.println("---\t\t\t----");
+      red_score = 0;
+      blue_score = 0;
       game_running = true;
-      sendMessage(BROADCAST, START, NONE, 0);
-      Serial.println("STARTED GAME");
-      // call the animating boxes to start
-      delay(500);
-      sendMessage(104, SHOW, RED, 0);
     } else if (sue == 'X' || sue == 'x') {
       game_running = false;
       // stop the current game
-      Serial.println("STOPPED GAME");
-      sendMessage(BROADCAST, STOP, NONE, 0);
-    } else if (sue == 'O' || sue == 'o') {
-      // set OVO speaking mode on
-      sendMessage(ROBOT_NODE, ANIMATE, NONE, 0);
-    } else if (sue == 'Q' || sue == 'q') {
-      // set OVO speaking mode off
-      sendMessage(ROBOT_NODE, STOP, NONE, 0);
-    } else if (sue == 'G' || sue == 'g') {
-      // start the current game
-      int number = Serial.parseInt();
-      if (number <= max_games) {
-        which_game = number;
-      }
-      Serial.print(F("PLAY GAME "));
-      Serial.println(which_game);
+      Serial.println("END OF GAME");
+      Serial.println("Final Scores:");
+      Serial.print("RED: ");
+      Serial.print(red_score);
+      Serial.print("BLUE: ");
+      Serial.print(blue_score);
+      Serial.println();
     }
   }
-  checkIncoming();
+
+  // report any new scores
+
 }
 
 bool sendMessage(uint8_t _target, e_Message _message, e_Side _side, long _value) {
@@ -104,31 +98,15 @@ void checkIncoming() {
       uint8_t received_button = radio.SENDERID;
       if (received_button > B_RED_NODE_MIN && received_button < B_BLUE_NODE_MAX) {
         // it's a button in normal range
-        Serial.print("b");
-        if (team(received_button ) == BLUE) {
-          Serial.print(" BLUE ");
-          Serial.print(received_button -B_BLUE_NODE_MIN);
-        } else if (team(received_button ) == RED){
-          Serial.print(" RED ");
-          Serial.print(received_button -B_RED_NODE_MIN);
-        } else {
-          Serial.print(received_button );
-        }
-        Serial.println();
-        if (game_running == true && which_game == 1) {
-          // send the OK message so the button buzzes
-          // for game 1
-          if (team(received_button) == RED) {
-            // buttons 31-34 to boxes 101–104
-            sendMessage(received_button +70, SHOW, team(received_button ), 0);
-          } else if (team(received_button) == BLUE) {
-            // buttons 41-44 do boxes (11)1–(11)4
-            sendMessage(received_button +70, SHOW, team(received_button ), 0);
-          }
-          Serial.print("sent SHOW to ");
-          Serial.print(received_button + 70);
-          Serial.println();
+        if (game_running == true) {
           sendMessage(received_button , OK, NONE, 0);
+          if (team(received_button) == RED) {
+            red_score++;
+            Serial.write('r');
+          } else if (team(received_button) == BLUE) {
+            blue_score++;
+            Serial.write('b');
+          }
         }
       }
     }
