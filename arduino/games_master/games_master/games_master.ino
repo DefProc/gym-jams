@@ -1,23 +1,29 @@
+//include libraries - no need for fast led
 #include <SPI.h>
 #include <RFM69.h>
 #include "../../common/common.h"
 
+//states that the game is running
 bool game_running = true;
+
+//used to move between games 1 to 3
 uint8_t which_game = 1;
 uint8_t max_games = 3;
 
 void setup() {
-  Serial.begin(BAUD);
+  Serial.begin(BAUD); //baud from constants
   Serial.println(F("start games_master"));
 
-  radio.initialize(FREQUENCY,GATEWAYID,NETWORKID);
+  radio.initialize(FREQUENCY,GATEWAYID,NETWORKID); //uses FREQUENCY,GATEWAYID,NETWORKID from constants
+  //Note to self check that constants is in the right folder
   radio.encrypt(KEY);
 }
 
 void loop() {
   // check for serial incomming and parse as required
+  // looking for serial inputs 
   while (Serial.available()) {
-    char sue = Serial.read();
+    char sue = Serial.read(); //ha har
     if (sue == 'h' || sue == 'H') {
       Serial.println(F("games_master"));
       Serial.println(F("H    - help (print this message)"));
@@ -28,6 +34,7 @@ void loop() {
     } else if (sue == 'b' | sue == 'B') {
       // blue mode
       if(sendMessage(ROBOT_NODE, SHOW, BLUE, 0)) { Serial.println("got ACK"); }
+      // Which node (moteino), what to do, what colour to show,
     } else if (sue == 'r' | sue == 'R') {
       // red mode
       if(sendMessage(ROBOT_NODE, SHOW, RED, 0)) { Serial.println("got ACK"); }
@@ -36,10 +43,12 @@ void loop() {
       if(sendMessage(ROBOT_NODE, STOP, NONE, 0)) { Serial.println("got ACK"); }
     }
   }
-  checkIncoming();
+  checkIncoming(); //checks if it has incoming messages
 }
 
 bool sendMessage(uint8_t _target, e_Message _message, e_Side _side, long _value) {
+  //
+  
   // build and send the message
   myPacket.the_message = _message;
   myPacket.the_side = _side;
@@ -87,20 +96,20 @@ void checkIncoming() {
           Serial.print(received_button );
         }
         Serial.println();
-        if (game_running == true && which_game == 1) {
+        if (game_running == true && which_game == 1) { //game 1 is fill the board
           // send the OK message so the button buzzes
           // for game 1
           if (team(received_button) == RED) {
             // buttons 31-34 to boxes 101–104
-            sendMessage(received_button +70, SHOW, team(received_button ), 0);
+            sendMessage(received_button +70, SHOW, team(received_button ), 0); //sending message to display something on a box
           } else if (team(received_button) == BLUE) {
             // buttons 41-44 do boxes (11)1–(11)4
-            sendMessage(received_button +70, SHOW, team(received_button ), 0);
+            sendMessage(received_button +70, SHOW, team(received_button ), 0); ////sending message to display something on a box
           }
           Serial.print("sent SHOW to ");
           Serial.print(received_button + 70);
           Serial.println();
-          sendMessage(received_button , OK, NONE, 0);
+          sendMessage(received_button , OK, NONE, 0); //'ok' tells button node to buzz
         }
       }
     }
