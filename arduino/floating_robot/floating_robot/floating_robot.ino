@@ -1,13 +1,18 @@
+//include libraries
+
 #include "FastLED.h"
 #include <SPI.h>
 #include <RFM69.h>
 #include "../../common/common.h"
 
+//set the data pins for LEDs and length of LED string
 #define NUM_LEDS 30
 #define DATA_PIN 6
 
+//Create new FastLED object called leds lenght of num_leds
 CRGB leds[NUM_LEDS];
 
+//set the node ID to = robot_node from constants file
 uint8_t nodeID = ROBOT_NODE;
 bool changeImage = true;
 const unsigned long sampleWindow = 50; // Sample window width in mS (50 mS = 20Hz)
@@ -15,62 +20,65 @@ unsigned int sample;
 
 
 void setup() {
-  Serial.begin(BAUD);
+  Serial.begin(BAUD); //from constants file (115200)
   Serial.println(F("start floating_robot"));
 
+  //start the radio & add the encryption key (constants in the constants file)
   radio.initialize(FREQUENCY,nodeID,NETWORKID);
   radio.encrypt(KEY);
 
   // initialize the LED string
-  FastLED.addLeds<WS2812,DATA_PIN,GRB>(leds,NUM_LEDS);
-  FastLED.setBrightness(84);
-  colourWipe(1);
-  delay(1000);
-  fill_solid(leds, NUM_LEDS, CRGB::Black);
-  FastLED.show();
+  FastLED.addLeds<WS2812,DATA_PIN,GRB>(leds,NUM_LEDS); //(ws2812 = name of chip in the LEDs on iPixels, set as greenRedBlue because that is how iPixels are organised
+  FastLED.setBrightness(84); // we have reduced the brightness from 255 to 84
+  colourWipe(1); //does colourwipe to show that this has started. If we set it to 10, it would be slower, 10 = slowest, 1 = fastest.
+  delay(1000); //waits
+  fill_solid(leds, NUM_LEDS, CRGB::Black); // sets all leds to black
+  FastLED.show(); //sends to leds
 
   // just some starting values to force the starting state:
-  yourPacket.the_message = STOP;
+  yourPacket.the_message = STOP; //
   yourPacket.the_side = NONE;
   yourPacket.the_value =0;
 }
+
 
 void fadeall() { for(int i = 0; i < NUM_LEDS; i++) { leds[i].nscale8(250); } }
 
 void loop() {
   checkIncoming();
 
+  //if were need to do some animation then go into animation state
   if (yourPacket.the_message != STOP) {
     changeImage = true;
   }
 
-  if (changeImage == true) {
-    if (yourPacket.the_message == ANIMATE) {
+  if (changeImage == true) { //animate something
+    if (yourPacket.the_message == ANIMATE) { 
       // choose the talking colour
-      CRGB colour = CRGB::Green;
-      if (yourPacket.the_side == BLUE) {
-        colour = CRGB::Blue;
-      } else if (yourPacket.the_side == RED){
-        colour = CRGB::Red;
+      CRGB colour = CRGB::Green; 
+      if (yourPacket.the_side == BLUE) { 
+        colour = CRGB::Blue; // turn red
+      } else if (yourPacket.the_side == RED){ 
+        colour = CRGB::Red; //turn blue
       }
       // start the talking function
       speakToMe(colour);
       //changeImage = true; // keep running the animation until told not to
-    } else if (yourPacket.the_message == STOP) {
+    } else if (yourPacket.the_message == STOP) { //turns leds to black / off
       clearStripBuffer();
       FastLED.show();
       changeImage = false;
-    } else if (yourPacket.the_message == SHOW) {
+    } else if (yourPacket.the_message == SHOW) { //show a certain colour colourwipe if a side has won
       if (yourPacket.the_side == NONE) {
         // run the rainbow wipe
         colourWipe(uint8_t(yourPacket.the_value));
       } else {
         // show the requested colour from the_side
-        CRGB colour = CRGB::Blue;
+        CRGB colour = CRGB::Blue; //sets colour to blue if told to do so form the master
         if (yourPacket.the_side == RED) {
-          colour = CRGB::Red;
+          colour = CRGB::Red; //sets colour to red if told to do so form the master
         }
-        theatreChase(colour);
+        theatreChase(colour); //does theatre chase with either red or blue depending on the colour value it is given
       }
     }
   }
