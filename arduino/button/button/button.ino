@@ -5,8 +5,6 @@
 #include <RFM69.h>
 #include "../../common/common.h"
 
-#define IS_RFM69HW false
-
 #define NODEID_LOCATION 123
 #define TEAMID_LOCATION 46
 
@@ -63,9 +61,7 @@ void setup() {
   }
 
   radio.initialize(FREQUENCY,nodeID,NETWORKID);
-  #ifdef IS_RFM69HW
-    radio.setHighPower();
-  #endif
+
   radio.encrypt(KEY);
   // send the radio to sleep straight away (outgoing only)
   radio.sleep();
