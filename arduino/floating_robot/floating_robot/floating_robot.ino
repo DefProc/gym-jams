@@ -3,9 +3,7 @@
 #include <RFM69.h>
 #include "../../common/common.h"
 
-#define IS_RFM69HW false
-
-#define NUM_LEDS 144
+#define NUM_LEDS 30
 #define DATA_PIN 6
 
 CRGB leds[NUM_LEDS];
@@ -17,19 +15,10 @@ unsigned int sample;
 
 
 void setup() {
-  // set up ports for minimal leakage current
-  DDRD &= B00000011;       // set Arduino pins 2 to 7 as inputs, leaves 0 & 1 (RX & TX) as is
-  DDRB = B00000000;        // set pins 8 to 13 as inputs
-  PORTD |= B11111100;      // enable pullups on pins 2 to 7
-  PORTB |= B11111111;      // enable pullups on pins 8 to 13
-
   Serial.begin(BAUD);
   Serial.println(F("start floating_robot"));
 
   radio.initialize(FREQUENCY,nodeID,NETWORKID);
-  #ifdef IS_RFM69HW
-    radio.setHighPower();
-  #endif
   radio.encrypt(KEY);
 
   // initialize the LED string
@@ -41,7 +30,7 @@ void setup() {
   FastLED.show();
 
   // just some starting values to force the starting state:
-  yourPacket.the_message = ANIMATE;
+  yourPacket.the_message = STOP;
   yourPacket.the_side = NONE;
   yourPacket.the_value =0;
 }
@@ -120,15 +109,13 @@ void speakToMe(CRGB _colour) {
 }
 
 void theatreChase(CRGB _colour) {
-  for (int j=0; j<10; j++) {
+  for (int i=0; i<NUM_LEDS; i=i+3) {
+    clearStripBuffer();
     for (int q=0; q<3; q++) {
-      clearStripBuffer();
-      for (int i=0; i<NUM_LEDS-3; i=i+3) {
-        leds[i+q] = _colour;
-      }
-      FastLED.show();
-      delay(50);
+      leds[i+q] = _colour;
     }
+    FastLED.show();
+    delay(50);
   }
 }
 

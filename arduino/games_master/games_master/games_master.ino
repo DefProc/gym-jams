@@ -2,21 +2,15 @@
 #include <RFM69.h>
 #include "../../common/common.h"
 
-#define IS_RFM69HW false
-
 bool game_running = true;
 uint8_t which_game = 1;
 uint8_t max_games = 3;
-//t_MessageFormat yourPacket;
 
 void setup() {
   Serial.begin(BAUD);
   Serial.println(F("start games_master"));
 
   radio.initialize(FREQUENCY,GATEWAYID,NETWORKID);
-  #ifdef IS_RFM69HW
-    radio.setHighPower();
-  #endif
   radio.encrypt(KEY);
 }
 
@@ -25,44 +19,21 @@ void loop() {
   while (Serial.available()) {
     char sue = Serial.read();
     if (sue == 'h' || sue == 'H') {
-      Serial.print(F("games_master"));
-      Serial.print(F("H    - help (print this message)"));
-      Serial.print(F("S    - start game"));
-      Serial.print(F("X    - stop game"));
-      Serial.print(F("G<n> - select game"));
-      Serial.print(F("G1   - Button Tag"));
-      Serial.print(F("G2   - Robot Rugby"));
-      Serial.print(F("G3   - Something Else"));
-      Serial.print(F("O    - OVO speaking mode ON"));
-      Serial.print(F("Q    - OVO speaking mode OFF"));
+      Serial.println(F("games_master"));
+      Serial.println(F("H    - help (print this message)"));
+      Serial.println(F("B    - Blue"));
+      Serial.println(F("R    - Red"));
+      Serial.println(F("X    - Off"));
       Serial.println();
-    } else if (sue == 'S' || sue == 's') {
-      // start the current game
-      game_running = true;
-      sendMessage(BROADCAST, START, NONE, 0);
-      Serial.println("STARTED GAME");
-      // call the animating boxes to start
-      delay(500);
-      sendMessage(104, SHOW, RED, 0);
-    } else if (sue == 'X' || sue == 'x') {
-      game_running = false;
-      // stop the current game
-      Serial.println("STOPPED GAME");
-      sendMessage(BROADCAST, STOP, NONE, 0);
-    } else if (sue == 'O' || sue == 'o') {
-      // set OVO speaking mode on
-      sendMessage(ROBOT_NODE, ANIMATE, NONE, 0);
-    } else if (sue == 'Q' || sue == 'q') {
-      // set OVO speaking mode off
-      sendMessage(ROBOT_NODE, STOP, NONE, 0);
-    } else if (sue == 'G' || sue == 'g') {
-      // start the current game
-      int number = Serial.parseInt();
-      if (number <= max_games) {
-        which_game = number;
-      }
-      Serial.print(F("PLAY GAME "));
-      Serial.println(which_game);
+    } else if (sue == 'b' | sue == 'B') {
+      // blue mode
+      if(sendMessage(ROBOT_NODE, SHOW, BLUE, 0)) { Serial.println("got ACK"); }
+    } else if (sue == 'r' | sue == 'R') {
+      // red mode
+      if(sendMessage(ROBOT_NODE, SHOW, RED, 0)) { Serial.println("got ACK"); }
+    } else if (sue == 'x' | sue == 'X') {
+      // off mode
+      if(sendMessage(ROBOT_NODE, STOP, NONE, 0)) { Serial.println("got ACK"); }
     }
   }
   checkIncoming();
@@ -77,10 +48,11 @@ bool sendMessage(uint8_t _target, e_Message _message, e_Side _side, long _value)
   if (_target == BROADCAST) {
     radio.send(BROADCAST, (const void*)(&myPacket), sizeof(myPacket));
     return true;
+  } else {
+    // if targeted, send with ack
+    bool ack_success = radio.sendWithRetry(_target, (const void*)(&myPacket), sizeof(myPacket), 5);
+    return ack_success;
   }
-  // if targeted, send with ack
-  bool ack_success = radio.sendWithRetry(_target, (const void*)(&myPacket), sizeof(myPacket), 5);
-  return ack_success;
 }
 
 void checkIncoming() {
